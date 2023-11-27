@@ -5,23 +5,38 @@ import (
 	"encoding/json"
 	"errors"
 	tool "gitlab.example.com/zhangweijie/tool-sdk/cmd"
-	"gitlab.example.com/zhangweijie/tool-sdk/global"
+	toolGlobal "gitlab.example.com/zhangweijie/tool-sdk/global"
 	"gitlab.example.com/zhangweijie/tool-sdk/middleware/logger"
 	toolSchemas "gitlab.example.com/zhangweijie/tool-sdk/middleware/schemas"
 	toolModels "gitlab.example.com/zhangweijie/tool-sdk/models"
 	"gitlab.example.com/zhangweijie/tool-sdk/option"
+	"gitlab.example.com/zhangweijie/unit/global"
+	"gitlab.example.com/zhangweijie/unit/global/utils"
 	"gitlab.example.com/zhangweijie/unit/middleware/schemas"
 	"gitlab.example.com/zhangweijie/unit/services/unit"
 )
 
 type executorIns struct {
-	global.ExecutorIns
+	toolGlobal.ExecutorIns
 }
 
 // ValidWorkCreateParams 验证任务参数
 func (ei *executorIns) ValidWorkCreateParams(params map[string]interface{}) (err error) {
 	var schema = new(schemas.UnitParams)
 	err = toolSchemas.CustomBindSchema(params, schema, schemas.RegisterValidatorRule)
+	if err != nil {
+		return err
+	} else {
+		isExist := schemas.ValidParamsExist(schema.CompanyID, schema.KeyWord)
+		if !isExist {
+			return errors.New(schemas.KeyIDErr)
+		}
+		for _, source := range schema.ScanSource {
+			if !utils.IsInList(source, global.DefaultAllSource) {
+				return errors.New(schemas.SourceErr)
+			}
+		}
+	}
 	return err
 }
 
@@ -30,6 +45,7 @@ func (ei *executorIns) ValidWorkCreateParams(params map[string]interface{}) (err
 // "work": &toolmodels.Work
 // }
 func (ei *executorIns) ExecutorMainFunc(ctx context.Context, params map[string]interface{}) error {
+	global.InitToolConf()
 	errChan := make(chan error, 2)
 	go func() {
 		defer close(errChan)

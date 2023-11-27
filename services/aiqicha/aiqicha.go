@@ -1,4 +1,4 @@
-package services
+package aiqicha
 
 import (
 	"fmt"
@@ -125,11 +125,11 @@ func getInfoList(pid string, types string) []gjson.Result {
 	urls := "https://aiqicha.baidu.com/" + types + "?pid=" + pid
 	content := utils.GetReq(urls)
 	var listData []gjson.Result
-	if gjson.Get(string(content), "status").String() == "0" {
-		data := gjson.Get(string(content), "data")
+	if gjson.Get(content, "status").String() == "0" {
+		data := gjson.Get(content, "data")
 		//判断一个获取的特殊值
 		if types == "relations/relationalMapAjax" {
-			data = gjson.Get(string(content), "data.investRecordData")
+			data = gjson.Get(content, "data.investRecordData")
 		}
 		//判断是否多页，遍历获取所有数据
 		pageCount := data.Get("pageCount").Int()
@@ -138,7 +138,7 @@ func getInfoList(pid string, types string) []gjson.Result {
 				logger.Info(fmt.Sprintf("当前：%s,%d\n", types, i))
 				reqUrls := urls + "&p=" + strconv.Itoa(i)
 				content = utils.GetReq(reqUrls)
-				listData = append(listData, gjson.Get(string(content), "data.list").Array()...)
+				listData = append(listData, gjson.Get(content, "data.list").Array()...)
 			}
 		} else {
 			listData = data.Get("list").Array()
@@ -165,7 +165,7 @@ func getCompanyInfoById(pid string, deep int, inFrom string, params *schemas.Uni
 	enJsonTMP, _ := sjson.Set(res.Raw, "inFrom", inFrom)
 	unitInfo.Infos[enDes] = append(unitInfo.Infos[enDes], gjson.Parse(enJsonTMP))
 	tmpEIS := make(map[string][]gjson.Result)
-	if params.IsEnDetail {
+	if params.IsDetail {
 		unitInfo.Pid = res.Get("pid").String()
 		unitInfo.Name = res.Get("entName").String()
 		unitInfo.LegalPerson = res.Get("legalPerson").String()
@@ -340,8 +340,8 @@ func getCompanyInfoById(pid string, deep int, inFrom string, params *schemas.Uni
 
 }
 
-// GetEnInfoByPid 根据PID获取公司信息
-func GetEnInfoByPid(params *schemas.UnitParams) (*result.UnitInfo, map[string]*result.OrgMap) {
+// GetUnitInfoByPid 根据PID获取公司信息
+func GetUnitInfoByPid(params *schemas.UnitParams) (*result.UnitInfo, map[string]*result.OrgMap) {
 	pid := ""
 	if params.CompanyID == "" {
 		_, pid = SearchName(params)
@@ -352,7 +352,7 @@ func GetEnInfoByPid(params *schemas.UnitParams) (*result.UnitInfo, map[string]*r
 	unitInfo := &result.UnitInfo{}
 	outMap := make(map[string]*result.OrgMap)
 
-	if params.PID == "" {
+	if pid == "" {
 		logger.Warn("没有获取到PID\n")
 		return unitInfo, outMap
 	}
@@ -366,7 +366,6 @@ func GetEnInfoByPid(params *schemas.UnitParams) (*result.UnitInfo, map[string]*r
 		outMap[k] = &result.OrgMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
 	}
 
-	//outputfile.OutPutExcelByEnInfo(ensInfos, ensOutMap, options)
 	return unitInfo, outMap
 
 }

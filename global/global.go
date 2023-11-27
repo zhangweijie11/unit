@@ -12,12 +12,10 @@ const (
 )
 
 var ToolConf config.ToolConfig
-
-// DefaultAllInfos 默认收集信息列表
+var DefaultAllSource = []string{"qcc", "aqc", "tyc", "all"}
 var DefaultAllInfos = []string{"icp", "weibo", "wechat", "app", "weibo", "job", "wx_app", "copyright"}
 var DefaultInfos = []string{"icp", "weibo", "wechat", "app", "wx_app"}
 var CanSearchAllInfos = []string{"enterprise_info", "icp", "weibo", "wechat", "app", "weibo", "job", "wx_app", "copyright", "supplier", "invest", "branch", "holds", "partner"}
-
 var ScanTypeKeys = map[string]string{
 	"aqc":     "爱企查",
 	"qcc":     "企查查",
@@ -29,7 +27,6 @@ var ScanTypeKeys = map[string]string{
 	"qimai":   "七麦数据",
 	"chinaz":  "站长之家",
 }
-
 var SourceTypeMap = map[string]string{
 	"爱企查":  "aqc",
 	"企查查":  "qcc",
@@ -41,7 +38,7 @@ var SourceTypeMap = map[string]string{
 	"站长之家": "chinaz",
 }
 
-func init() {
+func InitToolConf() {
 	toolConfig := toolGlobal.Config.Tool
 	err := mapstructure.Decode(toolConfig, &ToolConf)
 	if err != nil {

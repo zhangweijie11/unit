@@ -1,12 +1,12 @@
 package schemas
 
 type UnitParams struct {
-	PID            string   `json:"pid"`
-	KeyWord        string   `json:"key_word" binding:"required"`
-	CompanyID      string   `json:"company_id" binding:"required"` // 公司 ID
+	KeyWord        string   `json:"keyword"`
+	CompanyID      string   `json:"company_id"` // 公司 ID
 	CompanyName    string   `json:"company_name"`
-	ScanSource     string   `json:"scan_source"` // 扫描模式，qcc/tyc
-	IsEnDetail     bool     `json:"is_en_detail"`
+	ScanSource     []string `json:"scan_source" binding:"required"` // 扫描模式，qcc/tyc/aqc
+	IsDetail       bool     `json:"is_detail"`
+	IsMergeOut     bool     `json:"is_merge_out"`
 	SearchField    []string `json:"search_field"`
 	ISKeyPid       bool     `json:"is_key_pid"`
 	IsGroup        bool     `json:"is_group"`
