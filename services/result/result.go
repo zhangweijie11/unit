@@ -16,7 +16,7 @@ type OrgMap struct {
 var UnitInfoList = make(map[string][][]interface{})
 var OrgMapList = make(map[string]*OrgMap)
 var OrgMapLN = map[string]*OrgMap{
-	"enterprise_info": {
+	"unit_info": {
 		Name:    "企业信息",
 		JField:  []string{"name", "legal_person", "status", "phone", "email", "registered_capital", "incorporation_date", "address", "scope", "reg_code", "pid"},
 		KeyWord: []string{"企业名称", "法人代表", "经营状态", "电话", "邮箱", "注册资本", "成立日期", "注册地址", "经营范围", "统一社会信用代码", "PID"},
@@ -85,19 +85,19 @@ var OrgMapLN = map[string]*OrgMap{
 }
 
 type UnitInfo struct {
-	Name        string
-	Pid         string
-	LegalPerson string
-	OpenStatus  string
-	Email       string
-	Telephone   string
-	SType       string
-	RegCode     string
-	BranchNum   int64
-	InvestNum   int64
-	InTime      time.Time
-	PidS        map[string]string
-	Infos       map[string][]gjson.Result
-	EnInfos     map[string][]map[string]interface{}
-	EnInfo      []map[string]interface{}
+	Name        string                              // 单位名称
+	Pid         string                              // 唯一标识
+	LegalPerson string                              // 法人代表
+	OpenStatus  string                              // 开业状态
+	Email       string                              // 邮箱
+	Telephone   string                              // 电话
+	SType       string                              //
+	RegCode     string                              // 统一社会信用代码
+	BranchNum   int64                               // 分支结构数量
+	InvestNum   int64                               // 投资机构数量
+	InTime      time.Time                           //
+	PidS        map[string]string                   //
+	Infos       map[string][]gjson.Result           // 网页信息
+	EnInfos     map[string][]map[string]interface{} //
+	EnInfo      []map[string]interface{}            //
 }

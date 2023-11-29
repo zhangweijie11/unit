@@ -9,7 +9,7 @@ import (
 func GetProxy() (string, error) {
 
 	// api链接
-	api_url := ""
+	api_url := "https://dps.kdlapi.com/api/getdps/?secret_id=oj32uczh8b45w8k2fbdw&num=1&signature=sex8vojcce5imno5ytogbgt5vbaz5qgn&pt=1&sep=1"
 
 	// 请求api链接
 	req, _ := http.NewRequest("GET", api_url, nil)

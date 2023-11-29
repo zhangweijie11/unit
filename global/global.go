@@ -8,14 +8,26 @@ import (
 )
 
 const (
-	TimeOut = 3
+	TimeOut         = 3
+	SearchUnitInfo  = "unit_info"
+	SearchICP       = "icp"
+	SearchWeiBo     = "weibo"
+	SearchWeChat    = "wechat"
+	SearchAPP       = "app"
+	SearchWxApp     = "wx_app"
+	SearchJob       = "job"
+	SearchCopyright = "copyright"
+	SearchSupplier  = "supplier"
+	SearchInvest    = "invest"
+	SearchBranch    = "branch"
+	SearchHolds     = "holds"
+	SearchPartner   = "partner"
 )
 
 var ToolConf config.ToolConfig
-var DefaultAllSource = []string{"qcc", "aqc", "tyc", "all"}
-var DefaultAllInfos = []string{"icp", "weibo", "wechat", "app", "weibo", "job", "wx_app", "copyright"}
-var DefaultInfos = []string{"icp", "weibo", "wechat", "app", "wx_app"}
-var CanSearchAllInfos = []string{"enterprise_info", "icp", "weibo", "wechat", "app", "weibo", "job", "wx_app", "copyright", "supplier", "invest", "branch", "holds", "partner"}
+var DefaultAllSource = []string{"qcc", "aqc", "tyc", "xlb", "aldzs", "coolapk", "qimai", "chinaz", "all"}
+var DefaultAllInfos = []string{"unit_info", "icp", "weibo", "wechat", "app", "wx_app", "job", "copyright"}
+var CanSearchAllInfos = []string{"unit_info", "icp", "weibo", "wechat", "app", "wx_app", "job", "copyright", "supplier", "invest", "branch", "holds", "partner"}
 var ScanTypeKeys = map[string]string{
 	"aqc":     "爱企查",
 	"qcc":     "企查查",

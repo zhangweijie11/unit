@@ -4,7 +4,6 @@ type ToolConfig struct {
 	Proxy       string `yaml:"proxy" mapstructure:"proxy"`
 	ProxyEnable bool   `yaml:"proxy_enable" mapstructure:"proxy_enable"`
 	IsTableShow bool   `yaml:"is_table_show" mapstructure:"is_table_show"`
-	IsApiMode   bool   `yaml:"is_api_mode" mapstructure:"is_api_mode"`
 	//Biu         struct {
 	//	Api      string   `yaml:"api" mapstructure:"api"`
 	//	Key      string   `yaml:"key" mapstructure:"key"`

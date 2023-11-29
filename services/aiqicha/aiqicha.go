@@ -2,7 +2,6 @@ package aiqicha
 
 import (
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"gitlab.example.com/zhangweijie/tool-sdk/middleware/logger"
@@ -12,22 +11,21 @@ import (
 	"gitlab.example.com/zhangweijie/unit/services/result"
 	"go.uber.org/zap"
 	urlTool "net/url"
-	"os"
 	"strconv"
 	"strings"
 )
 
-type EnsGo struct {
+type CategoryInfo struct {
 	name      string
 	total     int64
 	available int64
-	api       string   //API 地址
-	gNum      string   //判断数量大小的关键词
-	field     []string //获取的字段名称 看JSON
-	keyWord   []string //关键词
+	api       string   // API 地址
+	gNum      string   // 判断数量大小的关键词
+	field     []string // 获取的字段名称 看JSON
+	keyWord   []string // 关键词
 }
 
-var ENSMapAQC = map[string]string{
+var UnitDataTypeMapAQC = map[string]string{
 	"webRecord":     "icp",
 	"appinfo":       "app",
 	"wechatoa":      "wechat",
@@ -37,10 +35,11 @@ var ENSMapAQC = map[string]string{
 	"shareholders":  "partner",
 }
 
-func getENMap() map[string]*EnsGo {
-	ensInfoMap := make(map[string]*EnsGo)
-	ensInfoMap = map[string]*EnsGo{
-		"enterprise_info": {
+// 获取单位各类别信息的映射关系
+func getUnitCategoryInfoMap() map[string]*CategoryInfo {
+	unitCategoryInfoMap := make(map[string]*CategoryInfo)
+	unitCategoryInfoMap = map[string]*CategoryInfo{
+		"unit_info": {
 			name:    "企业信息",
 			field:   []string{"entName", "legalPerson", "openStatus", "telephone", "email", "regCapital", "startDate", "regAddr", "scope", "taxNo", "pid"},
 			keyWord: []string{"企业名称", "法人代表", "经营状态", "电话", "邮箱", "注册资本", "成立日期", "注册地址", "经营范围", "统一社会信用代码", "PID"},
@@ -112,18 +111,18 @@ func getENMap() map[string]*EnsGo {
 			keyWord: []string{"股东名称", "持股比例", "认缴出资金额", "PID"},
 		},
 	}
-	for k := range ensInfoMap {
-		ensInfoMap[k].keyWord = append(ensInfoMap[k].keyWord, "数据关联  ")
-		ensInfoMap[k].field = append(ensInfoMap[k].field, "inFrom")
+	for k := range unitCategoryInfoMap {
+		unitCategoryInfoMap[k].keyWord = append(unitCategoryInfoMap[k].keyWord, "数据关联  ")
+		unitCategoryInfoMap[k].field = append(unitCategoryInfoMap[k].field, "inFrom")
 	}
-	return ensInfoMap
+	return unitCategoryInfoMap
 
 }
 
-// getInfoList 获取信息列表
-func getInfoList(pid string, types string) []gjson.Result {
-	urls := "https://aiqicha.baidu.com/" + types + "?pid=" + pid
-	content := utils.GetReq(urls)
+// getCategoryInfoList 获取信息列表
+func getCategoryInfoList(pid string, types string) []gjson.Result {
+	url := "https://aiqicha.baidu.com/" + types + "?pid=" + pid
+	content := utils.GetReq(url)
 	var listData []gjson.Result
 	if gjson.Get(content, "status").String() == "0" {
 		data := gjson.Get(content, "data")
@@ -135,8 +134,7 @@ func getInfoList(pid string, types string) []gjson.Result {
 		pageCount := data.Get("pageCount").Int()
 		if pageCount > 1 {
 			for i := 1; int(pageCount) >= i; i++ {
-				logger.Info(fmt.Sprintf("当前：%s,%d\n", types, i))
-				reqUrls := urls + "&p=" + strconv.Itoa(i)
+				reqUrls := url + "&p=" + strconv.Itoa(i)
 				content = utils.GetReq(reqUrls)
 				listData = append(listData, gjson.Get(content, "data.list").Array()...)
 			}
@@ -145,35 +143,35 @@ func getInfoList(pid string, types string) []gjson.Result {
 		}
 	}
 	return listData
-
 }
 
 // getCompanyInfoById 获取公司基本信息
 // pid 公司id
 // isSearch 是否递归搜索信息【分支机构、对外投资信息】
 // options options
-func getCompanyInfoById(pid string, deep int, inFrom string, params *schemas.UnitParams, unitInfo *result.UnitInfo) {
+func getCompanyInfoById(pid string, deep int, inFrom string, isDetail bool, params *schemas.UnitParams, unitInfo *result.UnitInfo) {
 
-	// 获取初始化API数据
-	ensInfoMap := getENMap()
+	// 获取各个类别需要提取的字段以及相关的 API 数据
+	unitCategoryInfoMap := getUnitCategoryInfoMap()
+
 	// 企业基本信息获取
+	detailUrl := "https://aiqicha.baidu.com/company_detail_" + pid
+	detailResponse := pageParseJson(utils.GetReq(detailUrl))
+	unitBaseInfo := "unit_info"
+	unitJsonTMP, _ := sjson.Set(detailResponse.Raw, "inFrom", inFrom)
+	unitInfo.Infos[unitBaseInfo] = append(unitInfo.Infos[unitBaseInfo], gjson.Parse(unitJsonTMP))
+	tmpUnitInfos := make(map[string][]gjson.Result)
+	// 获取详情数据
+	if isDetail {
+		unitInfo.Pid = detailResponse.Get("pid").String()
+		unitInfo.Name = detailResponse.Get("entName").String()
+		unitInfo.LegalPerson = detailResponse.Get("legalPerson").String()
+		unitInfo.OpenStatus = detailResponse.Get("openStatus").String()
+		unitInfo.Telephone = detailResponse.Get("telephone").String()
+		unitInfo.Email = detailResponse.Get("email").String()
+		unitInfo.RegCode = detailResponse.Get("taxNo").String()
 
-	urls := "https://aiqicha.baidu.com/company_detail_" + pid
-	res := pageParseJson(utils.GetReq(urls))
-	//获取企业基本信息情况
-	enDes := "enterprise_info"
-	enJsonTMP, _ := sjson.Set(res.Raw, "inFrom", inFrom)
-	unitInfo.Infos[enDes] = append(unitInfo.Infos[enDes], gjson.Parse(enJsonTMP))
-	tmpEIS := make(map[string][]gjson.Result)
-	if params.IsDetail {
-		unitInfo.Pid = res.Get("pid").String()
-		unitInfo.Name = res.Get("entName").String()
-		unitInfo.LegalPerson = res.Get("legalPerson").String()
-		unitInfo.OpenStatus = res.Get("openStatus").String()
-		unitInfo.Telephone = res.Get("telephone").String()
-		unitInfo.Email = res.Get("email").String()
-		unitInfo.RegCode = res.Get("taxNo").String()
-
+		// 命令行展示
 		data := [][]string{
 			{"PID", unitInfo.Pid},
 			{"企业名称", unitInfo.Name},
@@ -184,6 +182,7 @@ func getCompanyInfoById(pid string, deep int, inFrom string, params *schemas.Uni
 			{"统一社会信用代码", unitInfo.RegCode},
 		}
 		utils.TableShow([]string{}, data)
+
 	}
 
 	// 判断企业状态，如果是异常情况就可以跳过了
@@ -191,95 +190,94 @@ func getCompanyInfoById(pid string, deep int, inFrom string, params *schemas.Uni
 
 	}
 
-	// 获取企业信息列表
-	enInfoUrl := "https://aiqicha.baidu.com/compdata/navigationListAjax?pid=" + pid
-	enInfoRes := utils.GetReq(enInfoUrl)
+	// 获取企业各个信息列表（基本信息，重点关注，知识产权，企业发展，经营状况，数据解读，新闻资讯）
+	infoListUrl := "https://aiqicha.baidu.com/compdata/navigationListAjax?pid=" + pid
+	infoListResponse := utils.GetReq(infoListUrl)
 
-	// 初始化数量数据
-	if gjson.Get(enInfoRes, "status").String() == "0" {
-		for _, s := range gjson.Get(enInfoRes, "data").Array() {
-			for _, t := range s.Get("children").Array() {
-				resId := t.Get("id").String()
-				if _, ok := ENSMapAQC[resId]; ok {
-					resId = ENSMapAQC[resId]
+	// 获取相关信息列表更详细的分类数据
+	if gjson.Get(infoListResponse, "status").String() == "0" {
+		for _, categoryInfoList := range gjson.Get(infoListResponse, "data").Array() {
+			for _, children := range categoryInfoList.Get("children").Array() {
+				resId := children.Get("id").String()
+				if _, ok := UnitDataTypeMapAQC[resId]; ok {
+					resId = UnitDataTypeMapAQC[resId]
 				}
-				es := ensInfoMap[resId]
-				if es == nil {
-					es = &EnsGo{}
+				categoryInfo := unitCategoryInfoMap[resId]
+				if categoryInfo == nil {
+					categoryInfo = &CategoryInfo{}
 				}
-				//fmt.Println(t.Get("name").String() + "|" + t.Get("id").String())
-				es.name = t.Get("name").String()
-				es.total = t.Get("total").Int()
-				es.available = t.Get("avaliable").Int()
-				ensInfoMap[t.Get("id").String()] = es
+				categoryInfo.name = children.Get("name").String()
+				categoryInfo.total = children.Get("total").Int()
+				categoryInfo.available = children.Get("avaliable").Int()
+				unitCategoryInfoMap[children.Get("id").String()] = categoryInfo
 			}
 		}
 	}
 
-	//获取数据
-	for _, k := range params.SearchField {
-		if _, ok := ensInfoMap[k]; ok {
-			s := ensInfoMap[k]
-			if s.total > 0 && s.api != "" {
-				if k == "branch" && !params.IsGetBranch {
+	// 根据任务参数获取相关数据
+	for _, resultField := range params.ResultField {
+		if _, ok := unitCategoryInfoMap[resultField]; ok {
+			unitCategoryInfo := unitCategoryInfoMap[resultField]
+			// 根据信息列表获取到的信息判定那些类别是有数据的（total>0说明该类别有数据，存在 API 说明能获取到该类别数据）
+			if unitCategoryInfo.total > 0 && unitCategoryInfo.api != "" {
+				// 投资信息、股东信息、供应商、分支信息、控股企业
+				if (resultField == global.SearchInvest || resultField == global.SearchPartner || resultField ==
+					global.SearchSupplier || resultField == global.SearchBranch || resultField == global.SearchHolds) && (deep > params.Deep) {
 					continue
 				}
-				if (k == "invest" || k == "partner" || k == "supplier" || k == "branch" || k == "holds") && (deep > params.Deep) {
-					continue
-				}
-				t := getInfoList(pid, s.api)
+				categoryInfoList := getCategoryInfoList(pid, unitCategoryInfo.api)
 				//判断下网站备案，然后提取出来，处理下数据
-				if k == "icp" {
+				if resultField == global.SearchICP {
 					var tmp []gjson.Result
-					for _, y := range t {
-						for _, o := range y.Get("domain").Array() {
-							valueTmp, _ := sjson.Set(y.Raw, "domain", o.String())
-							valueTmp, _ = sjson.Set(valueTmp, "homeSite", y.Get("homeSite").Array()[0].String())
+					for _, categoryInfo := range categoryInfoList {
+						for _, domain := range categoryInfo.Get("domain").Array() {
+							valueTmp, _ := sjson.Set(categoryInfo.Raw, "domain", domain.String())
+							valueTmp, _ = sjson.Set(valueTmp, "homeSite", categoryInfo.Get("homeSite").Array()[0].String())
 							tmp = append(tmp, gjson.Parse(valueTmp))
 						}
 					}
-					t = tmp
+					categoryInfoList = tmp
 				}
 
 				// 添加来源信息，并把信息存储到数据里面
-				for _, y := range t {
-					valueTmp, _ := sjson.Set(y.Raw, "inFrom", inFrom)
-					unitInfo.Infos[k] = append(unitInfo.Infos[k], gjson.Parse(valueTmp))
+				for _, categoryInfo := range categoryInfoList {
+					valueTmp, _ := sjson.Set(categoryInfo.Raw, "inFrom", inFrom)
+					unitInfo.Infos[resultField] = append(unitInfo.Infos[resultField], gjson.Parse(valueTmp))
 					//存入临时数据
-					tmpEIS[k] = append(tmpEIS[k], gjson.Parse(valueTmp))
+					tmpUnitInfos[resultField] = append(tmpUnitInfos[resultField], gjson.Parse(valueTmp))
 				}
 
 				//命令输出展示
 				var data [][]string
-				for _, y := range t {
-					results := gjson.GetMany(y.Raw, ensInfoMap[k].field...)
+				for _, categoryInfo := range categoryInfoList {
+					results := gjson.GetMany(categoryInfo.Raw, unitCategoryInfoMap[resultField].field...)
 					var str []string
 					for _, ss := range results {
 						str = append(str, ss.String())
 					}
 					data = append(data, str)
 				}
-				utils.TableShow(ensInfoMap[k].keyWord, data)
+				utils.TableShow(unitCategoryInfoMap[resultField].keyWord, data)
 			}
 		}
 	}
 	//判断是否查询层级信息 deep
 	if deep <= params.Deep {
 		// 查询对外投资详细信息
-		// 对外投资>0 && 是否递归 && 参数投资信息大于0
-		if ensInfoMap["invest"].total > 0 && params.InvestNum > 0 {
-			for _, t := range tmpEIS["invest"] {
-				logger.Info(fmt.Sprintf("企业名称：%s 投资【%d级】占比：%s\n", t.Get("entName"), deep, t.Get("regRate")))
-				openStatus := t.Get("openStatus").String()
+		// 对外投资>0 && 是否递归 && 参数投资比例大于0
+		if unitCategoryInfoMap["invest"].total > 0 && params.InvestNum > 0 {
+			for _, tmp := range tmpUnitInfos["invest"] {
+				logger.Info(fmt.Sprintf("企业名称：%s 投资【%d级】占比：%s", tmp.Get("entName"), deep, tmp.Get("regRate")))
+				openStatus := tmp.Get("openStatus").String()
 				if openStatus == "注销" || openStatus == "吊销" {
 					continue
 				}
 				// 计算投资比例信息
-				investNum := utils.FormatInvest(t.Get("regRate").String())
+				investNum := utils.FormatInvest(tmp.Get("regRate").String())
 				// 如果达到设定要求就开始获取信息
 				if investNum >= params.InvestNum {
-					beReason := fmt.Sprintf("%s 投资【%d级】占比 %s", t.Get("entName"), deep, t.Get("regRate"))
-					getCompanyInfoById(t.Get("pid").String(), deep+1, beReason, params, unitInfo)
+					beReason := fmt.Sprintf("%s 投资【%d级】占比 %s", tmp.Get("entName"), deep, tmp.Get("regRate"))
+					getCompanyInfoById(tmp.Get("pid").String(), deep+1, beReason, false, params, unitInfo)
 				}
 			}
 		}
@@ -287,35 +285,35 @@ func getCompanyInfoById(pid string, deep int, inFrom string, params *schemas.Uni
 		// 查询分支机构公司详细信息
 		// 分支机构大于0 && 是否递归模式 && 参数是否开启查询
 		// 不查询分支机构的分支机构信息
-		if ensInfoMap["branch"].total > 0 && params.IsGetBranch && params.IsSearchBranch {
-			for _, t := range tmpEIS["branch"] {
-				if t.Get("inFrom").String() == "" {
-					openStatus := t.Get("openStatus").String()
+		if unitCategoryInfoMap["branch"].total > 0 && params.IsBranch {
+			for _, tmp := range tmpUnitInfos["branch"] {
+				if tmp.Get("inFrom").String() == "" {
+					openStatus := tmp.Get("openStatus").String()
 					if openStatus == "注销" || openStatus == "吊销" {
 						continue
 					}
-					logger.Info(fmt.Sprintf("分支名称：%s 状态：%s\n", t.Get("entName"), t.Get("openStatus")))
-					beReason := fmt.Sprintf("%s 分支机构", t.Get("entName"))
-					getCompanyInfoById(t.Get("pid").String(), -1, beReason, params, unitInfo)
+					logger.Info(fmt.Sprintf("分支名称：%s 状态：%s", tmp.Get("entName"), tmp.Get("openStatus")))
+					beReason := fmt.Sprintf("%s 分支机构", tmp.Get("entName"))
+					getCompanyInfoById(tmp.Get("pid").String(), deep+1, beReason, false, params, unitInfo)
 				}
 			}
 		}
 
 		//查询控股公司
 		// 不查询下层信息
-		if ensInfoMap["holds"].total > 0 && params.IsHold {
-			if len(tmpEIS["holds"]) == 0 {
-				logger.Info(fmt.Sprintf("【无控股信息】，需要账号开通【超级会员】！\n"))
+		if unitCategoryInfoMap["holds"].total > 0 && params.IsHold {
+			if len(tmpUnitInfos["holds"]) == 0 {
+				logger.Info(fmt.Sprintf("【无控股信息】，需要账号开通【超级会员】！"))
 			} else {
-				for _, t := range tmpEIS["holds"] {
-					if t.Get("inFrom").String() == "" {
-						openStatus := t.Get("openStatus").String()
-						logger.Info(fmt.Sprintf("控股公司：%s 状态：%s\n", t.Get("entName"), t.Get("openStatus")))
+				for _, tmp := range tmpUnitInfos["holds"] {
+					if tmp.Get("inFrom").String() == "" {
+						openStatus := tmp.Get("openStatus").String()
+						logger.Info(fmt.Sprintf("控股公司：%s 状态：%s", tmp.Get("entName"), tmp.Get("openStatus")))
 						if openStatus == "注销" || openStatus == "吊销" {
 							continue
 						}
-						beReason := fmt.Sprintf("%s 控股公司投资比例 %s", t.Get("entName"), t.Get("proportion"))
-						getCompanyInfoById(t.Get("pid").String(), -1, beReason, params, unitInfo)
+						beReason := fmt.Sprintf("%s 控股公司投资比例 %s", tmp.Get("entName"), tmp.Get("proportion"))
+						getCompanyInfoById(tmp.Get("pid").String(), deep+1, beReason, false, params, unitInfo)
 					}
 				}
 			}
@@ -323,16 +321,16 @@ func getCompanyInfoById(pid string, deep int, inFrom string, params *schemas.Uni
 
 		// 查询供应商
 		// 不查询下层信息
-		if ensInfoMap["supplier"].total > 0 && params.IsSupplier {
-			for _, t := range tmpEIS["supplier"] {
-				if t.Get("inFrom").String() == "" {
-					openStatus := t.Get("openStatus").String()
-					logger.Info(fmt.Sprintf("供应商：%s 状态：%s\n", t.Get("supplier"), t.Get("openStatus")))
+		if unitCategoryInfoMap["supplier"].total > 0 && params.IsSupplier {
+			for _, tmp := range tmpUnitInfos["supplier"] {
+				if tmp.Get("inFrom").String() == "" {
+					openStatus := tmp.Get("openStatus").String()
+					logger.Info(fmt.Sprintf("供应商：%s 状态：%s", tmp.Get("supplier"), tmp.Get("openStatus")))
 					if openStatus == "注销" || openStatus == "吊销" {
 						continue
 					}
-					beReason := fmt.Sprintf("%s 供应商", t.Get("supplier"))
-					getCompanyInfoById(t.Get("supplierId").String(), -1, beReason, params, unitInfo)
+					beReason := fmt.Sprintf("%s 供应商", tmp.Get("supplier"))
+					getCompanyInfoById(tmp.Get("supplierId").String(), deep+1, beReason, false, params, unitInfo)
 				}
 			}
 		}
@@ -348,21 +346,21 @@ func GetUnitInfoByPid(params *schemas.UnitParams) (*result.UnitInfo, map[string]
 	} else {
 		pid = params.CompanyID
 	}
-	//获取公司信息
+	// 获取公司信息
 	unitInfo := &result.UnitInfo{}
 	outMap := make(map[string]*result.OrgMap)
 
 	if pid == "" {
-		logger.Warn("没有获取到PID\n")
+		logger.Warn("没有获取到PID")
 		return unitInfo, outMap
 	}
-	logger.Info(fmt.Sprintf("查询PID %s\n", pid))
+	logger.Info(fmt.Sprintf("查询PID %s", pid))
 
 	unitInfo.Infos = make(map[string][]gjson.Result)
-	getCompanyInfoById(pid, 1, "", params, unitInfo)
+	getCompanyInfoById(pid, 1, "", true, params, unitInfo)
 	params.CompanyName = unitInfo.Name
 
-	for k, v := range getENMap() {
+	for k, v := range getUnitCategoryInfoMap() {
 		outMap[k] = &result.OrgMap{Name: v.name, Field: v.field, KeyWord: v.keyWord}
 	}
 
@@ -380,12 +378,12 @@ func pageParseJson(content string) gjson.Result {
 	idx2 := strings.Index(content, tag2)
 	if idx2 > idx1 {
 		str := content[idx1+len(tag1) : idx2]
-		str = strings.Replace(str, "\n", "", -1)
+		str = strings.Replace(str, "", "", -1)
 		str = strings.Replace(str, " ", "", -1)
 		str = str[:len(str)-1]
 		return gjson.Get(str, "result")
 	} else {
-		logger.Warn("无法解析信息错误信息%s\n", zap.String("content", content))
+		logger.Warn("无法解析信息错误信息%s", zap.String("content", content))
 	}
 	return gjson.Result{}
 }
@@ -399,18 +397,11 @@ func SearchName(params *schemas.UnitParams) ([]gjson.Result, string) {
 	rq := pageParseJson(content)
 	enList := rq.Get("resultList").Array()
 	if len(enList) == 0 {
-		logger.Warn(fmt.Sprintf("没有查询到关键词 “%s” \n", name))
+		logger.Warn(fmt.Sprintf("没有查询到关键词 “%s” ", name))
 		return enList, ""
 	} else {
-		logger.Info(fmt.Sprintf("关键词：“%s” 查询到 %d 个结果，默认选择第一个 \n", name, len(enList)))
+		logger.Info(fmt.Sprintf("关键词：“%s” 查询到 %d 个结果，默认选择第一个 ", name, len(enList)))
 	}
-	if global.ToolConf.IsTableShow {
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"PID", "企业名称", "法人代表", "社会统一信用代码"})
-		for _, v := range enList {
-			table.Append([]string{v.Get("pid").String(), v.Get("titleName").String(), v.Get("titleLegal").String(), v.Get("regNo").String()})
-		}
-		table.Render()
-	}
+
 	return enList, enList[0].Get("pid").String()
 }

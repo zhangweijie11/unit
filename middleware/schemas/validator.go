@@ -10,8 +10,9 @@ var RegisterValidatorRule = map[string]map[string]string{
 }
 
 const (
-	KeyIDErr  = "关键词或 PID 需至少存在一个"
-	SourceErr = "无效的扫描源"
+	WorkKeyIDErr       = "关键词或 PID 需至少存在一个"
+	WorkScanSourceErr  = "无效的扫描源"
+	WorkResultFieldErr = "无效的结果字段"
 )
 
 func ValidParamsExist(param1, param2 string) bool {

@@ -29,11 +29,17 @@ func (ei *executorIns) ValidWorkCreateParams(params map[string]interface{}) (err
 	} else {
 		isExist := schemas.ValidParamsExist(schema.CompanyID, schema.KeyWord)
 		if !isExist {
-			return errors.New(schemas.KeyIDErr)
+			return errors.New(schemas.WorkKeyIDErr)
 		}
+		// 验证扫描源是否超出范围
 		for _, source := range schema.ScanSource {
 			if !utils.IsInList(source, global.DefaultAllSource) {
-				return errors.New(schemas.SourceErr)
+				return errors.New(schemas.WorkScanSourceErr)
+			}
+		}
+		for _, source := range schema.ResultField {
+			if !utils.IsInList(source, global.CanSearchAllInfos) {
+				return errors.New(schemas.WorkResultFieldErr)
 			}
 		}
 	}
