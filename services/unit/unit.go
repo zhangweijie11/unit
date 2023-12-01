@@ -9,6 +9,7 @@ import (
 	"gitlab.example.com/zhangweijie/unit/global/utils"
 	"gitlab.example.com/zhangweijie/unit/middleware/schemas"
 	"gitlab.example.com/zhangweijie/unit/services/aiqicha"
+	"gitlab.example.com/zhangweijie/unit/services/tianyancha"
 	"sync"
 )
 
@@ -34,8 +35,8 @@ func UnitMainWorker(ctx context.Context, work *toolModels.Work, validParams *sch
 	var wg sync.WaitGroup
 
 	//爱企查
-	if utils.IsInList("aqc", validParams.ScanSource) {
-		if validParams.CompanyID == "" || (validParams.CompanyID != "" && utils.CheckPid(validParams.CompanyID) == "aqc") {
+	if utils.IsInList(global.SourceAqc, validParams.ScanSource) {
+		if validParams.CompanyID == "" || (validParams.CompanyID != "" && utils.CheckPid(validParams.CompanyID) == global.SourceAqc) {
 			wg.Add(1)
 			go func() {
 				defer func() {
@@ -48,6 +49,27 @@ func UnitMainWorker(ctx context.Context, work *toolModels.Work, validParams *sch
 				aiqicha.GetUnitInfoByPid(validParams)
 				//res, ensOutMap := aiqicha.GetUnitInfoByPid(validParams)
 				//fmt.Println("------------>", res, ensOutMap)
+				wg.Done()
+			}()
+		}
+	}
+
+	//天眼查
+	if utils.IsInList(global.SourceTyc, validParams.ScanSource) {
+		if validParams.CompanyID == "" || (validParams.CompanyID != "" && utils.CheckPid(validParams.CompanyID) == global.SourceTyc) {
+			wg.Add(1)
+			if validParams.Cookies.Tianyancha == "" || validParams.Cookies.TianyanchaTycid == "" {
+				logger.Warn("【TYC】MUST LOGIN 请补充天眼查COOKIE和tycId")
+			}
+			go func() {
+				defer func() {
+					if err := recover(); err != nil {
+						logger.Warn(fmt.Sprintf("[TYC] ERROR: %v", err))
+						wg.Done()
+					}
+				}()
+				tianyancha.GetUnitInfoByPid(validParams)
+				//res, ensOutMap := tianyancha.GetUnitInfoByPid(validParams)
 				wg.Done()
 			}()
 		}

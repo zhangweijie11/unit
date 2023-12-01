@@ -8,7 +8,11 @@ import (
 )
 
 const (
-	TimeOut         = 3
+	TimeOut = 3
+)
+
+// 爬取字段
+const (
 	SearchUnitInfo  = "unit_info"
 	SearchICP       = "icp"
 	SearchWeiBo     = "weibo"
@@ -24,30 +28,43 @@ const (
 	SearchPartner   = "partner"
 )
 
+// 爬取源
+const (
+	SourceTyc     = "tyc"
+	SourceQcc     = "qcc"
+	SourceAqc     = "aqc"
+	SourceXlb     = "xlb"
+	SourceAldzs   = "aldzs"
+	SourceCoolapk = "coolapk"
+	SourceQimai   = "qimai"
+	SourceChinaz  = "chinaz"
+	SourceAll     = "all"
+)
+
 var ToolConf config.ToolConfig
-var DefaultAllSource = []string{"qcc", "aqc", "tyc", "xlb", "aldzs", "coolapk", "qimai", "chinaz", "all"}
-var DefaultAllInfos = []string{"unit_info", "icp", "weibo", "wechat", "app", "wx_app", "job", "copyright"}
-var CanSearchAllInfos = []string{"unit_info", "icp", "weibo", "wechat", "app", "wx_app", "job", "copyright", "supplier", "invest", "branch", "holds", "partner"}
+var DefaultAllSource = []string{SourceQcc, SourceAqc, SourceTyc, SourceXlb, SourceAldzs, SourceCoolapk, SourceQimai, SourceChinaz, SourceAll}
+var DefaultAllInfos = []string{SearchUnitInfo, SearchICP, SearchWeiBo, SearchWeChat, SearchAPP, SearchWxApp, SearchJob, SearchCopyright}
+var CanSearchAllInfos = []string{SearchUnitInfo, SearchICP, SearchWeiBo, SearchWeChat, SearchAPP, SearchWxApp, SearchJob, SearchCopyright, SearchSupplier, SearchInvest, SearchBranch, SearchHolds, SearchPartner}
 var ScanTypeKeys = map[string]string{
-	"aqc":     "爱企查",
-	"qcc":     "企查查",
-	"tyc":     "天眼查",
-	"xlb":     "小蓝本",
-	"all":     "全部查询",
-	"aldzs":   "阿拉丁",
-	"coolapk": "酷安市场",
-	"qimai":   "七麦数据",
-	"chinaz":  "站长之家",
+	SourceAqc:     "爱企查",
+	SourceQcc:     "企查查",
+	SourceTyc:     "天眼查",
+	SourceXlb:     "小蓝本",
+	SourceAll:     "全部查询",
+	SourceAldzs:   "阿拉丁",
+	SourceCoolapk: "酷安市场",
+	SourceQimai:   "七麦数据",
+	SourceChinaz:  "站长之家",
 }
 var SourceTypeMap = map[string]string{
-	"爱企查":  "aqc",
-	"企查查":  "qcc",
-	"天眼查":  "tyc",
-	"小蓝本":  "xlb",
-	"阿拉丁":  "aldzs",
-	"酷安市场": "coolapk",
-	"七麦数据": "qimai",
-	"站长之家": "chinaz",
+	"爱企查":  SourceAqc,
+	"企查查":  SourceQcc,
+	"天眼查":  SourceTyc,
+	"小蓝本":  SourceXlb,
+	"阿拉丁":  SourceAldzs,
+	"酷安市场": SourceCoolapk,
+	"七麦数据": SourceQimai,
+	"站长之家": SourceChinaz,
 }
 
 func InitToolConf() {

@@ -91,7 +91,7 @@ type UnitInfo struct {
 	OpenStatus  string                              // 开业状态
 	Email       string                              // 邮箱
 	Telephone   string                              // 电话
-	SType       string                              //
+	ScanSource  string                              // 扫描源
 	RegCode     string                              // 统一社会信用代码
 	BranchNum   int64                               // 分支结构数量
 	InvestNum   int64                               // 投资机构数量
