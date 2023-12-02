@@ -9,6 +9,7 @@ import (
 	"gitlab.example.com/zhangweijie/unit/global/utils"
 	"gitlab.example.com/zhangweijie/unit/middleware/schemas"
 	"gitlab.example.com/zhangweijie/unit/services/aiqicha"
+	"gitlab.example.com/zhangweijie/unit/services/coolapk"
 	"gitlab.example.com/zhangweijie/unit/services/tianyancha"
 	"sync"
 )
@@ -73,6 +74,22 @@ func UnitMainWorker(ctx context.Context, work *toolModels.Work, validParams *sch
 				wg.Done()
 			}()
 		}
+	}
+
+	// coolapk酷安应用市场查询
+	if utils.IsInList(global.SourceCoolapk, validParams.ScanSource) {
+		wg.Add(1)
+		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					logger.Warn(fmt.Sprintf("[COOLAPK] ERROR: %v", err))
+					wg.Done()
+				}
+			}()
+			coolapk.GetReq(validParams)
+			//res, ensOutMap := coolapk.GetReq(options)
+			wg.Done()
+		}()
 	}
 
 	wg.Wait()

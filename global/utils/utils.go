@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"github.com/olekukonko/tablewriter"
 	"gitlab.example.com/zhangweijie/tool-sdk/middleware/logger"
@@ -75,5 +77,14 @@ func CheckPid(pid string) (res string) {
 		logger.Warn(fmt.Sprintf("pid长度%d不正确，pid: %s", len(pid), pid))
 		return ""
 	}
+	return res
+}
+
+// Md5 MD5加密
+// src 源字符
+func Md5(src string) string {
+	m := md5.New()
+	m.Write([]byte(src))
+	res := hex.EncodeToString(m.Sum(nil))
 	return res
 }
