@@ -9,6 +9,7 @@ import (
 	"gitlab.example.com/zhangweijie/unit/global/utils"
 	"gitlab.example.com/zhangweijie/unit/middleware/schemas"
 	"gitlab.example.com/zhangweijie/unit/services/aiqicha"
+	"gitlab.example.com/zhangweijie/unit/services/chinaz"
 	"gitlab.example.com/zhangweijie/unit/services/coolapk"
 	"gitlab.example.com/zhangweijie/unit/services/tianyancha"
 	"sync"
@@ -88,6 +89,22 @@ func UnitMainWorker(ctx context.Context, work *toolModels.Work, validParams *sch
 			}()
 			coolapk.GetReq(validParams)
 			//res, ensOutMap := coolapk.GetReq(options)
+			wg.Done()
+		}()
+	}
+
+	// ChinaZ查询
+	if utils.IsInList(global.SourceChinaz, validParams.ScanSource) {
+		wg.Add(1)
+		go func() {
+			//defer func() {
+			//	if x := recover(); x != nil {
+			//		gologger.Errorf("[QCC] ERROR: %v", x)
+			//		wg.Done()
+			//	}
+			//}()
+			chinaz.GetEnInfoByPid(validParams)
+			//res, ensOutMap := chinaz.GetEnInfoByPid(validParams)
 			wg.Done()
 		}()
 	}
