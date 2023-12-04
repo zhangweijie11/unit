@@ -9,6 +9,7 @@ import (
 	"gitlab.example.com/zhangweijie/unit/global/utils"
 	"gitlab.example.com/zhangweijie/unit/middleware/schemas"
 	"gitlab.example.com/zhangweijie/unit/services/aiqicha"
+	"gitlab.example.com/zhangweijie/unit/services/aldzs"
 	"gitlab.example.com/zhangweijie/unit/services/chinaz"
 	"gitlab.example.com/zhangweijie/unit/services/coolapk"
 	"gitlab.example.com/zhangweijie/unit/services/tianyancha"
@@ -97,16 +98,33 @@ func UnitMainWorker(ctx context.Context, work *toolModels.Work, validParams *sch
 	if utils.IsInList(global.SourceChinaz, validParams.ScanSource) {
 		wg.Add(1)
 		go func() {
-			//defer func() {
-			//	if x := recover(); x != nil {
-			//		gologger.Errorf("[QCC] ERROR: %v", x)
-			//		wg.Done()
-			//	}
-			//}()
+			defer func() {
+				if err := recover(); err != nil {
+					logger.Warn(fmt.Sprintf("[CHINAX] ERROR: %v", err))
+					wg.Done()
+				}
+			}()
 			chinaz.GetEnInfoByPid(validParams)
 			//res, ensOutMap := chinaz.GetEnInfoByPid(validParams)
 			wg.Done()
 		}()
+	}
+
+	// 微信小程序查询
+	if utils.IsInList(global.SourceAldzs, validParams.ScanSource) {
+		wg.Add(1)
+		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					logger.Warn(fmt.Sprintf("[CHINAX] ERROR: %v", err))
+					wg.Done()
+				}
+			}()
+			aldzs.GetInfoByKeyword(validParams)
+			//res, ensOutMap := aldzs.GetInfoByKeyword(options)
+			wg.Done()
+		}()
+
 	}
 
 	wg.Wait()
